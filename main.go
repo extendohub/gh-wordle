@@ -40,6 +40,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
 	switch os.Args[1] {
 	case "guess":
 		if len(os.Args) < 3 {
@@ -59,6 +60,7 @@ func doStatus(user *user) {
 	game, err := sendStatus(user)
 	if err != nil {
 		fmt.Println("Error getting your Wordle game")
+		fmt.Printf("%+v\n", err)
 		return
 	}
 
@@ -82,6 +84,7 @@ func doGuess(guess string, user *user) {
 	game, err := sendGuess(guess, user)
 	if err != nil {
 		fmt.Printf("Error getting your Wordle game\n")
+		fmt.Printf("%+v\n", err)
 		return
 	}
 
@@ -162,11 +165,9 @@ func getUser() (*user, error) {
 func send(req *http.Request, user *user) (*gameStatus, error) {
 	req.Header.Set("Extendo-ActorLogin", user.Login)
 	req.Header.Set("Extendo-ActorId", strconv.FormatInt(user.Id, 10))
-
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("%+v\n", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -174,7 +175,6 @@ func send(req *http.Request, user *user) (*gameStatus, error) {
 	if resp.StatusCode == 400 {
 		return nil, nil
 	} else if resp.StatusCode > 299 {
-		fmt.Printf("%+v\n", err)
 		return nil, err
 	}
 
