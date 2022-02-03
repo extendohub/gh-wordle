@@ -1,0 +1,9 @@
+{
+  "name": "extendo-wordle",
+  "version": "0.0.1",
+  "description": "Wordle game built on ExtendoHub",
+  "type": "module",
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}
