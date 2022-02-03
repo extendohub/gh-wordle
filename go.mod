@@ -1,4 +1,4 @@
-module github.com/app-extensions/gh-wordle
+module github.com/extendohub/gh-wordle
 
 go 1.16
 

@@ -72,7 +72,7 @@ func doStatus(user *user) {
 }
 
 func sendStatus(user *user) (*gameStatus, error) {
-	url := "http://extendocompute.eastus.cloudapp.azure.com:3000/rest/repos/app-extensions/extendo-wordle/wordle/status"
+	url := "http://extendocompute.eastus.cloudapp.azure.com:3000/rest/repos/extendohub/extendo-wordle/wordle/status"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func doGuess(guess string, user *user) {
 }
 
 func sendGuess(word string, user *user) (*gameStatus, error) {
-	url := "http://extendocompute.eastus.cloudapp.azure.com:3000/rest/repos/app-extensions/extendo-wordle/wordle/" + word
+	url := "http://extendocompute.eastus.cloudapp.azure.com:3000/rest/repos/extendohub/extendo-wordle/wordle/" + word
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		return nil, err
