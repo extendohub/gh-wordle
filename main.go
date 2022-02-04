@@ -54,11 +54,11 @@ func main() {
 
 	switch os.Args[2] {
 	case "guess":
-		if len(os.Args) < 3 {
+		if len(os.Args) < 4 {
 			fmt.Println("You need a guess to guess")
 			os.Exit(1)
 		}
-		locator.doGuess(os.Args[2], user)
+		locator.doGuess(os.Args[3], user)
 	case "status":
 		locator.doStatus(user)
 	default:
