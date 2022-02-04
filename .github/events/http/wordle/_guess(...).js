@@ -87,11 +87,16 @@ async function getWord() {
 }
 
 async function pickNewWord() {
-  const words = await helpers.keyValue.get('words')
-  if (!words) throw new Error('Word list is missing!')
+  const words = await getWords()
   const word = words[helpers._.random(0, words.length)]
   await helpers.keyValue.set('word', { word, date: today() })
   return word
+}
+
+async function getWords() {
+  const json = helpers.octokit.repos.getContent({ owner: 'extendohub', repo: 'gh-wordle', path: 'words.json'})
+  if (!json) throw new Error('Word list is missing!')
+  return JSON.parse(json)
 }
 
 function cleanGame(game) {
