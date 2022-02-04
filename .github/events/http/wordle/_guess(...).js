@@ -96,8 +96,6 @@ async function pickNewWord() {
 
 async function getWords() {
   const response = await helpers.octokit.repos.getContent({ owner: 'extendohub', repo: 'gh-wordle', path: 'words.json' })
-  console.log(`And the words content is `)
-  console.dir(response)
   if (response.statusCode < 200 || response.statusCode >= 300) throw new Error('There was a problem loading words!')
   return JSON.parse(Buffer.from(response.data.content, 'base64').toString('utf8'))
 }
