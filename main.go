@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/cli/go-gh"
 	"github.com/fatih/color"
@@ -28,9 +29,14 @@ type gameStatus struct {
 	Status  string  `json:"status"`
 }
 
+type gameLocator struct {
+	host string
+	test bool
+}
+
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Expected 'guess' or 'status' commands")
+	if len(os.Args) < 3 {
+		fmt.Println("Expected 'wordle <org[/repo] <status | guess <word>>'")
 		os.Exit(1)
 	}
 
@@ -41,23 +47,41 @@ func main() {
 		os.Exit(1)
 	}
 
-	switch os.Args[1] {
+	var locator = gameLocator{test: false, host: os.Args[1]}
+	if os.Args[len(os.Args)-1] == "-test" {
+		locator.test = true
+	}
+
+	switch os.Args[2] {
 	case "guess":
 		if len(os.Args) < 3 {
 			fmt.Println("You need a guess to guess")
 			os.Exit(1)
 		}
-		doGuess(os.Args[2], user)
+		locator.doGuess(os.Args[2], user)
 	case "status":
-		doStatus(user)
+		locator.doStatus(user)
 	default:
-		fmt.Println("Expected 'guess' or 'status' commands")
+		fmt.Println("Expected 'wordle <org[/repo] <status | guess <word>>'")
 		os.Exit(1)
 	}
 }
 
-func doStatus(user *user) {
-	game, err := sendStatus(user)
+func getUser() (*user, error) {
+	client, err := gh.RESTClient(nil)
+	if err != nil {
+		return nil, err
+	}
+	var response user
+	err = client.Get("user", &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response, nil
+}
+
+func (x gameLocator) doStatus(user *user) {
+	game, err := x.sendStatus(user)
 	if err != nil {
 		fmt.Println("Error getting your Wordle game")
 		fmt.Printf("%+v\n", err)
@@ -68,20 +92,20 @@ func doStatus(user *user) {
 		fmt.Println("No game running today. Yet...")
 		return
 	}
-	printGame(game)
+	x.printGame(game)
 }
 
-func sendStatus(user *user) (*gameStatus, error) {
-	url := "http://extendocompute.eastus.cloudapp.azure.com:3000/rest/repos/extendohub/extendo-wordle/wordle/status"
+func (x gameLocator) sendStatus(user *user) (*gameStatus, error) {
+	url := x.getUrl() + "/status"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	return send(req, user)
+	return x.send(req, user)
 }
 
-func doGuess(guess string, user *user) {
-	game, err := sendGuess(guess, user)
+func (x gameLocator) doGuess(guess string, user *user) {
+	game, err := x.sendGuess(guess, user)
 	if err != nil {
 		fmt.Printf("Error getting your Wordle game\n")
 		fmt.Printf("%+v\n", err)
@@ -93,20 +117,20 @@ func doGuess(guess string, user *user) {
 		return
 	}
 
-	fmt.Printf("%s\n", getGuessComment(game.Guesses[len(game.Guesses)-1]))
-	printGame(game)
+	fmt.Printf("%s\n", x.getGuessComment(game.Guesses[len(game.Guesses)-1]))
+	x.printGame(game)
 }
 
-func sendGuess(word string, user *user) (*gameStatus, error) {
-	url := "http://extendocompute.eastus.cloudapp.azure.com:3000/rest/repos/extendohub/extendo-wordle/wordle/" + word
+func (x gameLocator) sendGuess(word string, user *user) (*gameStatus, error) {
+	url := x.getUrl() + "/" + word
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	return send(req, user)
+	return x.send(req, user)
 }
 
-func getGuessComment(latest guess) string {
+func (x gameLocator) getGuessComment(latest guess) string {
 	if latest.IsMatch {
 		return "Awesome! You won!"
 	}
@@ -128,7 +152,7 @@ func getGuessComment(latest guess) string {
 	return "Bummer. Try something like 'tears'"
 }
 
-func printGame(game *gameStatus) {
+func (x gameLocator) printGame(game *gameStatus) {
 	green := color.New(color.FgGreen).PrintfFunc()
 	yellow := color.New(color.FgYellow).PrintfFunc()
 	gray := color.New(color.FgHiBlack).PrintfFunc()
@@ -149,20 +173,7 @@ func printGame(game *gameStatus) {
 	}
 }
 
-func getUser() (*user, error) {
-	client, err := gh.RESTClient(nil)
-	if err != nil {
-		return nil, err
-	}
-	var response user
-	err = client.Get("user", &response)
-	if err != nil {
-		return nil, err
-	}
-	return &response, nil
-}
-
-func send(req *http.Request, user *user) (*gameStatus, error) {
+func (x gameLocator) send(req *http.Request, user *user) (*gameStatus, error) {
 	req.Header.Set("Extendo-ActorLogin", user.Login)
 	req.Header.Set("Extendo-ActorId", strconv.FormatInt(user.Id, 10))
 	client := &http.Client{}
@@ -190,4 +201,16 @@ func send(req *http.Request, user *user) (*gameStatus, error) {
 	}
 
 	return &result, nil
+}
+
+func (x gameLocator) getUrl() string {
+	kind := "repos"
+	if !strings.Contains(x.host, "/") {
+		kind = "orgs"
+	}
+	server := "extendocompute"
+	if x.test {
+		server = "extendotest"
+	}
+	return fmt.Sprintf("http://%s.eastus.cloudapp.azure.com:3000/rest/%s/%s/wordle", server, kind, x.host)
 }
