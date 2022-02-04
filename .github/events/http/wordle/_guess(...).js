@@ -94,9 +94,10 @@ async function pickNewWord() {
 }
 
 async function getWords() {
-  const json = helpers.octokit.repos.getContent({ owner: 'extendohub', repo: 'gh-wordle', path: 'words.json'})
-  if (!json) throw new Error('Word list is missing!')
-  return JSON.parse(json)
+  const response = helpers.octokit.repos.getContent({ owner: 'extendohub', repo: 'gh-wordle', path: 'words.json' })
+  console.dir(response)
+  if (response.statusCode < 200 || response.statusCode >= 300) throw new Error('There was a problem loading words!')
+  return JSON.parse(Buffer.from(response.data.content, 'base64').toString('utf8'))
 }
 
 function cleanGame(game) {
