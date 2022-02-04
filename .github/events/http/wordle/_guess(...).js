@@ -66,7 +66,7 @@ function compare(word, guess) {
 
 async function getGame(player) {
   const game = await helpers.keyValue.get(getKey(player))
-  if (game && isToday(game.date)) return game
+  if (game && game.word && isToday(game.date)) return game
   return { player, date: today(), status: 'running', word: await getWord(), guesses: [] }
 }
 
@@ -87,11 +87,17 @@ async function getWord() {
 }
 
 async function pickNewWord() {
-  const words = await helpers.keyValue.get('words')
-  if (!words) throw new Error('Word list is missing!')
+  const words = await getWords()
   const word = words[helpers._.random(0, words.length)]
+  if (!word) throw new Error(`Couldn't pick a word`)
   await helpers.keyValue.set('word', { word, date: today() })
   return word
+}
+
+async function getWords() {
+  const response = await helpers.octokit.repos.getContent({ owner: 'extendohub', repo: 'gh-wordle', path: 'words.json' })
+  if (response.statusCode < 200 || response.statusCode >= 300) throw new Error('There was a problem loading words!')
+  return JSON.parse(Buffer.from(response.data.content, 'base64').toString('utf8'))
 }
 
 function cleanGame(game) {
